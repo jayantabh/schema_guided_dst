@@ -710,10 +710,10 @@ def _create_schema_embeddings(bert_config, schema_embedding_file):
   """Create schema embeddings and save it into file."""
   if not tf.io.gfile.exists(FLAGS.schema_embedding_dir):
     tf.io.gfile.makedirs(FLAGS.schema_embedding_dir)
-  is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
-  schema_emb_run_config = tf.contrib.tpu.RunConfig(
+  is_per_host = tf.compat.v1.estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  schema_emb_run_config = tf.compat.v1.estimator.tpu.RunConfig(
       master=FLAGS.master,
-      tpu_config=tf.contrib.tpu.TPUConfig(
+      tpu_config=tf.compat.v1.estimator.tpu.TPUConfig(
           num_shards=FLAGS.num_tpu_cores,
           per_host_input_for_training=is_per_host))
 
@@ -730,7 +730,7 @@ def _create_schema_embeddings(bert_config, schema_embedding_file):
       use_one_hot_embeddings=FLAGS.use_one_hot_embeddings)
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  schema_emb_estimator = tf.contrib.tpu.TPUEstimator(
+  schema_emb_estimator = tf.compat.v1.estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=schema_emb_model_fn,
       config=schema_emb_run_config,
