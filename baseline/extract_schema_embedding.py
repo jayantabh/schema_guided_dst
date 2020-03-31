@@ -143,7 +143,7 @@ def model_fn_builder(bert_config, init_checkpoint, use_tpu,
     # Use the embedding obtained from the final layer.
     predictions["final_layer"] = all_layers[-1]
 
-    output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+    output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
         mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
     return output_spec
 
