@@ -107,7 +107,7 @@ def model_fn_builder(bert_config, init_checkpoint, use_tpu,
     input_mask = features["input_mask"]
     input_type_ids = features["input_type_ids"]
 
-    model = modeling.BertModel(
+    model = modeling.AlbertModel(
         config=bert_config,
         is_training=False,
         input_ids=input_ids,
