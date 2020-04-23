@@ -319,15 +319,15 @@ class SchemaGuidedDST(object):
           outputs: A dict mapping output names to corresponding tensors.
         """
         # Encode the utterances using BERT.
-        tf.compat.v1.logging.info("State 1")
+        # tf.compat.v1.logging.info("State 1")
         self._encoded_utterance, self._encoded_tokens = (
             self._encode_utterances(features, is_training))
-        tf.compat.v1.logging.info("State 2")
+        # tf.compat.v1.logging.info("State 2")
         self._int_encoded_utterance, self._int_encoded_tokens = (
             self._encode_utterances(features, is_training, "intent"))
-        tf.compat.v1.logging.info("State 3")
+        # tf.compat.v1.logging.info("State 3")
 
-        tf.compat.v1.logging.info("cat_utt: {}".format(features["cat_utt"].shape))
+        # tf.compat.v1.logging.info("cat_utt: {}".format(features["cat_utt"].shape))
 
         features["cat_utt"] = tf.squeeze(tf.reshape(features["cat_utt"],
                                                     (-1, self._max_seq_length)))
@@ -338,7 +338,7 @@ class SchemaGuidedDST(object):
 
         self._cat_encoded_utterance, self._cat_encoded_tokens = (
                     self._encode_utterances(features, is_training, "cat"))
-        tf.compat.v1.logging.info("State 4")
+        # tf.compat.v1.logging.info("State 4")
 
         features["non_cat_utt"] = tf.squeeze(tf.reshape(features["non_cat_utt"],
                                                         (-1, self._max_seq_length)))
@@ -350,7 +350,7 @@ class SchemaGuidedDST(object):
         self._non_cat_encoded_utterance, self._non_cat_encoded_tokens = (
             self._encode_utterances(features, is_training, "non_cat"))
 
-        tf.compat.v1.logging.info("State 5")
+        # tf.compat.v1.logging.info("State 5")
 
         outputs = {"logit_intent_status": self._get_intents(features),
                    "logit_req_slot_status": self._get_requested_slots(features)}
@@ -574,13 +574,18 @@ class SchemaGuidedDST(object):
           A tensor of shape (batch_size, num_elements, num_classes) containing the
           logits.
         """
+        if name_scope == "intents":
+            encoded_utterance = self._int_encoded_utterance
+        else:
+            encoded_utterance = self._encoded_utterance
+
         _, num_elements, embedding_dim = element_embeddings.get_shape().as_list()
         # Project the utterance embeddings.
         utterance_proj = tf.keras.layers.Dense(
             units=embedding_dim,
             activation=modeling.gelu,
             name="{}_utterance_proj".format(name_scope))
-        utterance_embedding = utterance_proj(self._encoded_utterance)
+        utterance_embedding = utterance_proj(encoded_utterance)
         # Combine the utterance and element embeddings.
         repeat_utterance_embeddings = tf.tile(
             tf.expand_dims(utterance_embedding, axis=1), [1, num_elements, 1])

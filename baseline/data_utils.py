@@ -965,7 +965,7 @@ def file_based_convert_examples_to_features(dial_examples, output_file):
         features["intent_utt_seg"] = _create_int_feature(ex.intent_utt_segment)
         features["intent_utt_mask"] = _create_int_feature(ex.intent_utt_mask)
 
-        tf.compat.v1.logging.info("ex.cat_slot_utt shape: {}".format(len(ex.cat_slot_utt)))
+        # tf.compat.v1.logging.info("ex.cat_slot_utt shape: {}".format(len(ex.cat_slot_utt)))
 
         features["cat_utt"] = _create_int_feature(ex.cat_slot_utt)
         features["cat_utt_seg"] = _create_int_feature(ex.cat_slot_utt_seg)
