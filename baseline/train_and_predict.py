@@ -263,6 +263,7 @@ def _file_based_input_fn_builder(input_dial_file, schema_embedding_file,
 
         service_id = example["service_id"]
         for key, value in schema_tensors.items():
+            # tf.compat.v1.logging.info("{}: {}".format(key, value[service_id].shape))
             example[key] = value[service_id]
         return example
 
@@ -574,10 +575,10 @@ class SchemaGuidedDST(object):
           A tensor of shape (batch_size, num_elements, num_classes) containing the
           logits.
         """
-        if name_scope == "intents":
-            encoded_utterance = self._int_encoded_utterance
-        else:
-            encoded_utterance = self._encoded_utterance
+        # if name_scope == "intents":
+        #     encoded_utterance = self._int_encoded_utterance
+        # else:
+        #     encoded_utterance = self._encoded_utterance
 
         _, num_elements, embedding_dim = element_embeddings.get_shape().as_list()
         # Project the utterance embeddings.
@@ -592,6 +593,9 @@ class SchemaGuidedDST(object):
         utterance_element_emb = tf.concat(
             [repeat_utterance_embeddings, element_embeddings], axis=2)
         # Project the combined embeddings to obtain logits.
+
+        tf.compat.v1.logging.info("{}: {}".format(name_scope, utterance_element_emb.shape))
+
         layer_1 = tf.keras.layers.Dense(
             units=embedding_dim,
             activation=modeling.gelu,
