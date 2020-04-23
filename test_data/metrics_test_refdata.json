@@ -2,7 +2,9 @@
   "utterance": "I want to have a meal in Palo Alto at this restaurant called Bird Dog. Can you also get me their contact number?",
   "frame_ref": {
     "state": {
-      "requested_slots": ["phone_number"],
+      "requested_slots": [
+        "phone_number"
+      ],
       "active_intent": "ReserveRestaurant",
       "slot_values": {
         "city": [
@@ -35,7 +37,10 @@
   },
   "frame_hyp": {
     "state": {
-      "requested_slots": ["phone_number", "street_address"],
+      "requested_slots": [
+        "phone_number",
+        "street_address"
+      ],
       "active_intent": "SearchRestaurant",
       "slot_values": {
         "city": [
