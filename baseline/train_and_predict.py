@@ -187,17 +187,17 @@ def _file_based_input_fn_builder(input_dial_file, schema_embedding_file,
         "intent_utt_seg":
             tf.io.FixedLenFeature([max_utt_len], tf.int64),
         "cat_utt":
-            tf.io.FixedLenFeature([max_num_cat_slot, max_utt_len], tf.int64),
+            tf.io.FixedLenFeature([max_num_cat_slot * max_utt_len], tf.int64),
         "cat_utt_mask":
-            tf.io.FixedLenFeature([max_num_cat_slot, max_utt_len], tf.int64),
+            tf.io.FixedLenFeature([max_num_cat_slot * max_utt_len], tf.int64),
         "cat_utt_seg":
-            tf.io.FixedLenFeature([max_num_cat_slot, max_utt_len], tf.int64),
+            tf.io.FixedLenFeature([max_num_cat_slot * max_utt_len], tf.int64),
         "non_cat_utt":
-            tf.io.FixedLenFeature([max_num_noncat_slot, max_utt_len], tf.int64),
-        "non_cat_utt_mask":
-            tf.io.FixedLenFeature([max_num_noncat_slot, max_utt_len], tf.int64),
+            tf.io.FixedLenFeature([max_num_noncat_slot * max_utt_len], tf.int64),
         "non_cat_utt_seg":
-            tf.io.FixedLenFeature([max_num_noncat_slot, max_utt_len], tf.int64),
+            tf.io.FixedLenFeature([max_num_noncat_slot * max_utt_len], tf.int64),
+        "non_cat_utt_mask":
+            tf.io.FixedLenFeature([max_num_noncat_slot * max_utt_len], tf.int64),
         "cat_slot_num":
             tf.io.FixedLenFeature([], tf.int64),
         "cat_slot_status":
@@ -302,10 +302,11 @@ class SchemaGuidedDST(object):
         self._encoded_tokens = None
         self._int_encoded_utterance = None
         self._int_encoded_tokens = None
-        self._cat_encoded_utterance = []
-        self._cat_encoded_tokens = []
-        self._non_cat_encoded_utterance = []
-        self._non_cat_encoded_tokens = []
+        self._cat_encoded_utterance = None
+        self._cat_encoded_tokens = None
+        self._non_cat_encoded_utterance = None
+        self._non_cat_encoded_tokens = None
+        self._max_seq_length = FLAGS.max_seq_length
 
     def define_model(self, features, is_training):
         """Define the model computation.
@@ -325,22 +326,31 @@ class SchemaGuidedDST(object):
         self._int_encoded_utterance, self._int_encoded_tokens = (
             self._encode_utterances(features, is_training, "intent"))
         tf.compat.v1.logging.info("State 3")
-        num_cat_slots = features["cat_utt"].shape[1]
-        for slot_idx in range(num_cat_slots):
-            cat_encoded_utterance_slot, cat_encoded_tokens_slot = (
-                    self._encode_utterances(features, is_training, "cat", slot_idx))
 
-            self._cat_encoded_utterance.append(cat_encoded_utterance_slot)
-            self._cat_encoded_tokens.append(cat_encoded_tokens_slot)
+        tf.compat.v1.logging.info("cat_utt: {}".format(features["cat_utt"].shape))
+
+        features["cat_utt"] = tf.squeeze(tf.reshape(features["cat_utt"],
+                                                    (-1, self._max_seq_length)))
+        features["cat_utt_seg"] = tf.squeeze(tf.reshape(features["cat_utt_seg"],
+                                                        (-1, self._max_seq_length)))
+        features["cat_utt_mask"] = tf.squeeze(tf.reshape(features["cat_utt_mask"],
+                                                         (-1, self._max_seq_length)))
+
+        self._cat_encoded_utterance, self._cat_encoded_tokens = (
+                    self._encode_utterances(features, is_training, "cat"))
         tf.compat.v1.logging.info("State 4")
 
-        num_non_cat_slots = features["non_cat_utt"].shape[1]
-        for slot_idx in range(num_non_cat_slots):
-            non_cat_encoded_utterance_slot, non_cat_encoded_tokens_slot = (
-                self._encode_utterances(features, is_training, "non_cat", slot_idx))
+        features["non_cat_utt"] = tf.squeeze(tf.reshape(features["non_cat_utt"],
+                                                        (-1, self._max_seq_length)))
+        features["non_cat_utt_seg"] = tf.squeeze(tf.reshape(features["non_cat_utt_seg"],
+                                                            (-1, self._max_seq_length)))
+        features["non_cat_utt_mask"] = tf.squeeze(tf.reshape(features["non_cat_utt_mask"],
+                                                  (-1, self._max_seq_length)))
 
-            self._non_cat_encoded_utterance.append(non_cat_encoded_utterance_slot)
-            self._non_cat_encoded_tokens.append(non_cat_encoded_tokens_slot)
+        self._non_cat_encoded_utterance, self._non_cat_encoded_tokens = (
+            self._encode_utterances(features, is_training, "non_cat"))
+
+        tf.compat.v1.logging.info("State 5")
 
         outputs = {"logit_intent_status": self._get_intents(features),
                    "logit_req_slot_status": self._get_requested_slots(features)}
@@ -533,23 +543,12 @@ class SchemaGuidedDST(object):
         else:
             task = ""
 
-        if task in ['cat_', 'non_cat_']:
-            input_ids = features[task + "utt"][:, slot_idx, :]
-            input_mask = features[task + "utt_mask"][:, slot_idx, :]
-            token_type_ids = features[task + "utt_seg"][:, slot_idx, :]
-        else:
-            input_ids = features[task + "utt"]
-            input_mask = features[task + "utt_mask"]
-            token_type_ids = features[task + "utt_seg"]
-
-        tf.compat.v1.logging.info(task + "features shape: {}".format(input_ids))
-
         bert_encoder = modeling.BertModel(
             config=self._bert_config,
             is_training=is_training,
-            input_ids=input_ids,
-            input_mask=input_mask,
-            token_type_ids=token_type_ids,
+            input_ids=features[task + "utt"],
+            input_mask=features[task + "utt_mask"],
+            token_type_ids=features[task + "utt_seg"],
             use_one_hot_embeddings=self._use_one_hot_embeddings)
         encoded_utterance = bert_encoder.get_pooled_output()
         encoded_tokens = bert_encoder.get_sequence_output()

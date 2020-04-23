@@ -588,15 +588,16 @@ class InputExample(object):
         max_utt_len = self._max_seq_length
 
         intent_desc_joined = '[SEP]'.join(self.service_schema.intent_descs)
+        intent_desc_tokens = self._tokenize(intent_desc_joined)
 
         # Modify lengths of sys & usr utterance so that length of total utt
         # (including [CLS], [SEP], [SEP]) is no more than max_utt_len
         is_too_long = truncate_seq_pair(additional_tokens,
-                                        intent_desc_joined,
+                                        intent_desc_tokens,
                                         max_utt_len - 3)
         if is_too_long and self._log_data_warnings:
             tf.compat.v1.logging.info(
-                "Utterance sequence truncated in example id - %s.", self.example_id)
+                "Utterance sequence truncated for intent in example id - %s.", self.example_id)
 
         # Construct the tokens, segment mask and valid token mask which will be
         # input to BERT, using the tokens for system utterance (sequence A) and
@@ -635,7 +636,7 @@ class InputExample(object):
         intent_start_char_idx.append(0)
         intent_end_char_idx.append(0)
 
-        for subword_idx, subword in enumerate(intent_desc_joined):
+        for subword_idx, subword in enumerate(intent_desc_tokens):
             intent_utt_subword.append(subword)
             intent_utt_seg.append(1)
             intent_utt_mask.append(1)
@@ -682,9 +683,10 @@ class InputExample(object):
             cat_slot_start_char_idx.append(0)
             cat_slot_end_char_idx.append(0)
 
-            slot_desc = self.service_schema.slot_descs[slot]
+            slot_desc = self.service_schema.slot_desc[slot_idx]
+            slot_desc_tokens = self._tokenize(slot_desc)
 
-            for subword_idx, subword in enumerate(slot_desc):
+            for subword_idx, subword in enumerate(slot_desc_tokens):
                 cat_slot_utt_subword.append(subword)
                 cat_slot_utt_seg.append(0)
                 cat_slot_utt_mask.append(1)
@@ -707,7 +709,8 @@ class InputExample(object):
             cat_slot_end_char_idx.append(0)
 
             for value in self.service_schema.get_categorical_slot_values(slot):
-                for subword_idx, subword in enumerate(value):
+                value_tokens = self._tokenize(value)
+                for subword_idx, subword in enumerate(value_tokens):
                     cat_slot_utt_subword.append(subword)
                     cat_slot_utt_seg.append(1)
                     cat_slot_utt_mask.append(1)
@@ -733,11 +736,18 @@ class InputExample(object):
                 cat_slot_start_char_idx.append(0)
                 cat_slot_end_char_idx.append(0)
 
-            self.cat_slot_utt.append(cat_slot_utterance_ids)
-            self.cat_slot_utt_seg.append(cat_slot_utt_seg)
-            self.cat_slot_utt_mask.append(cat_slot_utt_mask)
-            self.cat_slot_utt_start_char_idx.append(cat_slot_start_char_idx)
-            self.cat_slot_utt_end_char_idx.append(cat_slot_end_char_idx)
+            self.cat_slot_utt.extend(cat_slot_utterance_ids)
+            self.cat_slot_utt_seg.extend(cat_slot_utt_seg)
+            self.cat_slot_utt_mask.extend(cat_slot_utt_mask)
+            self.cat_slot_utt_start_char_idx.extend(cat_slot_start_char_idx)
+            self.cat_slot_utt_end_char_idx.extend(cat_slot_end_char_idx)
+
+        while len(self.cat_slot_utt) < max_utt_len * MAX_NUM_CAT_SLOT:
+            self.cat_slot_utt.append(0)
+            self.cat_slot_utt_seg.append(0)
+            self.cat_slot_utt_mask.append(0)
+            self.cat_slot_utt_start_char_idx.append(0)
+            self.cat_slot_utt_end_char_idx.append(0)
 
         non_categorical_slots = self.service_schema.non_categorical_slots
 
@@ -760,9 +770,10 @@ class InputExample(object):
             non_cat_slot_start_char_idx.append(0)
             non_cat_slot_end_char_idx.append(0)
 
-            slot_desc = self.service_schema.slot_descs[slot]
+            slot_desc = self.service_schema.slot_desc[slot_idx]
+            slot_desc_tokens = self._tokenize(slot_desc)
 
-            for subword_idx, subword in enumerate(slot_desc):
+            for subword_idx, subword in enumerate(slot_desc_tokens):
                 non_cat_slot_utt_subword.append(subword)
                 non_cat_slot_utt_seg.append(1)
                 non_cat_slot_utt_mask.append(1)
@@ -788,11 +799,18 @@ class InputExample(object):
                 non_cat_slot_start_char_idx.append(0)
                 non_cat_slot_end_char_idx.append(0)
 
-            self.non_cat_slot_utt.append(non_cat_slot_utterance_ids)
-            self.non_cat_slot_utt_seg.append(non_cat_slot_utt_seg)
-            self.non_cat_slot_utt_mask.append(non_cat_slot_utt_mask)
-            self.non_cat_slot_utt_start_char_idx.append(non_cat_slot_start_char_idx)
-            self.non_cat_slot_utt_end_char_idx.append(non_cat_slot_end_char_idx)
+            self.non_cat_slot_utt.extend(non_cat_slot_utterance_ids)
+            self.non_cat_slot_utt_seg.extend(non_cat_slot_utt_seg)
+            self.non_cat_slot_utt_mask.extend(non_cat_slot_utt_mask)
+            self.non_cat_slot_utt_start_char_idx.extend(non_cat_slot_start_char_idx)
+            self.non_cat_slot_utt_end_char_idx.extend(non_cat_slot_end_char_idx)
+
+        while len(self.non_cat_slot_utt) < max_utt_len * MAX_NUM_NONCAT_SLOT:
+            self.non_cat_slot_utt.append(0)
+            self.non_cat_slot_utt_seg.append(0)
+            self.non_cat_slot_utt_mask.append(0)
+            self.non_cat_slot_utt_start_char_idx.append(0)
+            self.non_cat_slot_utt_end_char_idx.append(0)
 
     def make_copy_with_utterance_features(self):
         """Make a copy of the current example with utterance features."""
@@ -875,6 +893,39 @@ class InputExample(object):
             if intent == frame["state"]["active_intent"]:
                 self.intent_status[intent_idx] = STATUS_ACTIVE
 
+    def _tokenize(self, text):
+        """Tokenize the utterance using word-piece tokenization used by BERT.
+
+        Args:
+          text: A string containing the utterance to be tokenized.
+
+        Returns:
+          bert_tokens: A list of tokens obtained by word-piece tokenization of the
+            utterance.
+          alignments: A dict mapping indices of characters corresponding to start
+            and end positions of words (not subwords) to corresponding indices in
+            bert_tokens list.
+          inverse_alignments: A list of size equal to bert_tokens. Each element is a
+            tuple containing the index of the starting and inclusive ending
+            character of the word corresponding to the subword. This list is used
+            during inference to map word-piece indices to spans in the original
+            utterance.
+        """
+        text = tokenization.convert_to_unicode(text)
+        # After _naive_tokenize, spaces and punctuation marks are all retained, i.e.
+        # direct concatenation of all the tokens in the sequence will be the
+        # original string.
+        tokens = _naive_tokenize(text)
+        # Filter out empty tokens and obtain aligned character index for each token.
+        bert_tokens = []
+        # These lists store inverse alignments to be used during inference.
+        for token in tokens:
+            if token.strip():
+                subwords = self._tokenizer.tokenize(token)
+                bert_tokens.extend(subwords)
+
+        return bert_tokens
+
 
 def _create_int_feature(values):
     f = tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
@@ -913,6 +964,8 @@ def file_based_convert_examples_to_features(dial_examples, output_file):
         features["intent_utt"] = _create_int_feature(ex.intent_utt_ids)
         features["intent_utt_seg"] = _create_int_feature(ex.intent_utt_segment)
         features["intent_utt_mask"] = _create_int_feature(ex.intent_utt_mask)
+
+        tf.compat.v1.logging.info("ex.cat_slot_utt shape: {}".format(len(ex.cat_slot_utt)))
 
         features["cat_utt"] = _create_int_feature(ex.cat_slot_utt)
         features["cat_utt_seg"] = _create_int_feature(ex.cat_slot_utt_seg)
