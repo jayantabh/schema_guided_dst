@@ -339,7 +339,21 @@ class SchemaGuidedDST(object):
 
         self._cat_encoded_utterance, self._cat_encoded_tokens = (
                     self._encode_utterances(features, is_training, "cat"))
+
+        emb_dim = self._cat_encoded_utterance.shape[-1]
+
+        self._cat_encoded_utterance = tf.reshape(self._cat_encoded_utterance,
+                                                 (-1, data_utils.MAX_NUM_CAT_SLOT,
+                                                  emb_dim))
+
+        self._cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
+                                              (-1, data_utils.MAX_NUM_CAT_SLOT,
+                                               self._max_seq_length,
+                                               emb_dim))
         # tf.compat.v1.logging.info("State 4")
+
+        tf.compat.v1.logging.info("cat encoded utt: {}, {}".format(self._cat_encoded_utterance.shape,
+                                                                   self._cat_encoded_tokens.shape))
 
         features["non_cat_utt"] = tf.squeeze(tf.reshape(features["non_cat_utt"],
                                                         (-1, self._max_seq_length)))
@@ -351,7 +365,19 @@ class SchemaGuidedDST(object):
         self._non_cat_encoded_utterance, self._non_cat_encoded_tokens = (
             self._encode_utterances(features, is_training, "non_cat"))
 
+        self._non_cat_encoded_utterance = tf.reshape(self._cat_encoded_utterance,
+                                                 (-1, data_utils.MAX_NUM_CAT_SLOT,
+                                                  emb_dim))
+
+        self._non_cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
+                                              (-1, data_utils.MAX_NUM_CAT_SLOT,
+                                               self._max_seq_length,
+                                               emb_dim))
+
         # tf.compat.v1.logging.info("State 5")
+
+        tf.compat.v1.logging.info("cat encoded utt: {}, {}".format(self._non_cat_encoded_utterance.shape,
+                                                                   self._non_cat_encoded_tokens.shape))
 
         outputs = {"logit_intent_status": self._get_intents(features),
                    "logit_req_slot_status": self._get_requested_slots(features)}
@@ -575,10 +601,20 @@ class SchemaGuidedDST(object):
           A tensor of shape (batch_size, num_elements, num_classes) containing the
           logits.
         """
-        # if name_scope == "intents":
-        #     encoded_utterance = self._int_encoded_utterance
-        # else:
-        #     encoded_utterance = self._encoded_utterance
+        batch_size = self._encoded_utterance.shape[0]
+        if name_scope == "intents":
+            encoded_utterance = self._int_encoded_utterance
+        elif name_scope == "categorical_slot_status" or \
+                name_scope == "categorical_slot_values":
+            encoded_utterance = self._cat_encoded_utterance
+            encoded_utterance = tf.reshape(encoded_utterance, (batch_size, -1))
+        elif name_scope == "requested_slots":
+            encoded_utterance = tf.concat([self._cat_encoded_utterance,
+                                           self._non_cat_encoded_utterance],
+                                          axis=1)
+            encoded_utterance = tf.reshape(encoded_utterance, (batch_size, -1))
+        else:
+            encoded_utterance = self._encoded_utterance
 
         _, num_elements, embedding_dim = element_embeddings.get_shape().as_list()
         # Project the utterance embeddings.
@@ -631,6 +667,8 @@ class SchemaGuidedDST(object):
     def _get_requested_slots(self, features):
         """Obtain logits for requested slots."""
         slot_embeddings = features["req_slot_emb"]
+
+        tf.compat.v1.logging.info("cat encoded utt: {}".format(self._non_cat_encoded_utterance.shape))
         logits = self._get_logits(slot_embeddings, 1, "requested_slots")
         return tf.squeeze(logits, axis=-1)
 
@@ -638,6 +676,7 @@ class SchemaGuidedDST(object):
         """Obtain logits for status and values for categorical slots."""
         # Predict the status of all categorical slots.
         slot_embeddings = features["cat_slot_emb"]
+
         status_logits = self._get_logits(slot_embeddings, 3,
                                          "categorical_slot_status")
 
