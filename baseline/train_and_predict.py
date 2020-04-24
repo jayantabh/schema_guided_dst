@@ -668,7 +668,7 @@ class SchemaGuidedDST(object):
         """Obtain logits for requested slots."""
         slot_embeddings = features["req_slot_emb"]
 
-        tf.compat.v1.logging.info("cat encoded utt: {}".format(self._non_cat_encoded_utterance.shape))
+        # tf.compat.v1.logging.info("cat encoded utt: {}".format(self._non_cat_encoded_utterance.shape))
         logits = self._get_logits(slot_embeddings, 1, "requested_slots")
         return tf.squeeze(logits, axis=-1)
 
