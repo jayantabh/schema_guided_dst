@@ -54,8 +54,8 @@ STATUS_DONTCARE = 2
 
 FILE_RANGES = {
     "dstc8_single_domain": {
-        "train": range(1, 44),
-        "dev": range(1, 2),
+        "train": range(1, 8),
+        "dev": range(1, 8),
         "test": range(1, 12)
     },
     "dstc8_multi_domain": {

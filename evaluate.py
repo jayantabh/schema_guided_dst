@@ -234,7 +234,7 @@ def main(_):
       eval_services[service["service_name"]] = service
 
   dataset_ref = get_dataset_as_dict(
-      os.path.join(FLAGS.dstc8_data_dir, FLAGS.eval_set, "dialogues_*.json"))
+      os.path.join(FLAGS.dstc8_data_dir, FLAGS.eval_set, "dialogues_00[1-7].json"))
   dataset_hyp = get_dataset_as_dict(
       os.path.join(FLAGS.prediction_dir, "*.json"))
 

@@ -481,7 +481,7 @@ class SchemaGuidedDST(object):
     """Encode system and user utterances using BERT."""
     # Optain the embedded representation of system and user utterances in the
     # turn and the corresponding token level representations.
-    bert_encoder = modeling.BertModel(
+    bert_encoder = modeling.AlbertModel(
         config=self._bert_config,
         is_training=is_training,
         input_ids=features["utt"],
@@ -773,7 +773,7 @@ def main(_):
   tokenization.validate_case_matches_checkpoint(
       do_lower_case=FLAGS.do_lower_case, init_checkpoint=bert_init_ckpt)
 
-  bert_config = modeling.BertConfig.from_json_file(
+  bert_config = modeling.AlbertConfig.from_json_file(
       os.path.join(FLAGS.bert_ckpt_dir, "bert_config.json"))
   if FLAGS.max_seq_length > bert_config.max_position_embeddings:
     raise ValueError(
