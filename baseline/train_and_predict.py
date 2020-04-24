@@ -330,49 +330,49 @@ class SchemaGuidedDST(object):
 
         # tf.compat.v1.logging.info("cat_utt: {}".format(features["cat_utt"].shape))
 
-        # features["cat_utt"] = tf.squeeze(tf.reshape(features["cat_utt"],
-        #                                             (-1, self._max_seq_length)))
-        # features["cat_utt_seg"] = tf.squeeze(tf.reshape(features["cat_utt_seg"],
-        #                                                 (-1, self._max_seq_length)))
-        # features["cat_utt_mask"] = tf.squeeze(tf.reshape(features["cat_utt_mask"],
-        #                                                  (-1, self._max_seq_length)))
-        #
-        # self._cat_encoded_utterance, self._cat_encoded_tokens = (
-        #             self._encode_utterances(features, is_training, "cat"))
-        #
-        # emb_dim = self._cat_encoded_utterance.shape[-1]
-        #
-        # self._cat_encoded_utterance = tf.reshape(self._cat_encoded_utterance,
-        #                                          (-1, data_utils.MAX_NUM_CAT_SLOT,
-        #                                           emb_dim))
-        #
-        # self._cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
-        #                                       (-1, data_utils.MAX_NUM_CAT_SLOT,
-        #                                        self._max_seq_length,
-        #                                        emb_dim))
-        # tf.compat.v1.logging.info("State 4")
+        features["cat_utt"] = tf.squeeze(tf.reshape(features["cat_utt"],
+                                                    (-1, self._max_seq_length)))
+        features["cat_utt_seg"] = tf.squeeze(tf.reshape(features["cat_utt_seg"],
+                                                        (-1, self._max_seq_length)))
+        features["cat_utt_mask"] = tf.squeeze(tf.reshape(features["cat_utt_mask"],
+                                                         (-1, self._max_seq_length)))
+
+        self._cat_encoded_utterance, self._cat_encoded_tokens = (
+                    self._encode_utterances(features, is_training, "cat"))
+
+        emb_dim = self._cat_encoded_utterance.shape[-1]
+
+        self._cat_encoded_utterance = tf.reshape(self._cat_encoded_utterance,
+                                                 (-1, data_utils.MAX_NUM_CAT_SLOT,
+                                                  emb_dim))
+
+        self._cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
+                                              (-1, data_utils.MAX_NUM_CAT_SLOT,
+                                               self._max_seq_length,
+                                               emb_dim))
+        tf.compat.v1.logging.info("State 4")
 
         # tf.compat.v1.logging.info("cat encoded utt: {}, {}".format(self._cat_encoded_utterance.shape,
         #                                                            self._cat_encoded_tokens.shape))
 
-        # features["non_cat_utt"] = tf.squeeze(tf.reshape(features["non_cat_utt"],
-        #                                                 (-1, self._max_seq_length)))
-        # features["non_cat_utt_seg"] = tf.squeeze(tf.reshape(features["non_cat_utt_seg"],
-        #                                                     (-1, self._max_seq_length)))
-        # features["non_cat_utt_mask"] = tf.squeeze(tf.reshape(features["non_cat_utt_mask"],
-        #                                           (-1, self._max_seq_length)))
-        #
-        # self._non_cat_encoded_utterance, self._non_cat_encoded_tokens = (
-        #     self._encode_utterances(features, is_training, "non_cat"))
-        #
-        # self._non_cat_encoded_utterance = tf.reshape(self._cat_encoded_utterance,
-        #                                          (-1, data_utils.MAX_NUM_CAT_SLOT,
-        #                                           emb_dim))
-        #
-        # self._non_cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
-        #                                       (-1, data_utils.MAX_NUM_CAT_SLOT,
-        #                                        self._max_seq_length,
-        #                                        emb_dim))
+        features["non_cat_utt"] = tf.squeeze(tf.reshape(features["non_cat_utt"],
+                                                        (-1, self._max_seq_length)))
+        features["non_cat_utt_seg"] = tf.squeeze(tf.reshape(features["non_cat_utt_seg"],
+                                                            (-1, self._max_seq_length)))
+        features["non_cat_utt_mask"] = tf.squeeze(tf.reshape(features["non_cat_utt_mask"],
+                                                  (-1, self._max_seq_length)))
+
+        self._non_cat_encoded_utterance, self._non_cat_encoded_tokens = (
+            self._encode_utterances(features, is_training, "non_cat"))
+
+        self._non_cat_encoded_utterance = tf.reshape(self._cat_encoded_utterance,
+                                                 (-1, data_utils.MAX_NUM_CAT_SLOT,
+                                                  emb_dim))
+
+        self._non_cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
+                                              (-1, data_utils.MAX_NUM_CAT_SLOT,
+                                               self._max_seq_length,
+                                               emb_dim))
 
         # tf.compat.v1.logging.info("State 5")
 
@@ -604,15 +604,15 @@ class SchemaGuidedDST(object):
         batch_size = self._encoded_utterance.shape[0]
         if name_scope == "intents":
             encoded_utterance = self._int_encoded_utterance
-        # elif name_scope == "categorical_slot_status" or \
-        #         name_scope == "categorical_slot_values":
-        #     encoded_utterance = self._cat_encoded_utterance
-        #     encoded_utterance = tf.reshape(encoded_utterance, (batch_size, -1))
-        # elif name_scope == "requested_slots":
-        #     encoded_utterance = tf.concat([self._cat_encoded_utterance,
-        #                                    self._non_cat_encoded_utterance],
-        #                                   axis=1)
-        #     encoded_utterance = tf.reshape(encoded_utterance, (batch_size, -1))
+        elif name_scope == "categorical_slot_status" or \
+                name_scope == "categorical_slot_values":
+            encoded_utterance = self._cat_encoded_utterance
+            encoded_utterance = tf.reshape(encoded_utterance, (batch_size, -1))
+        elif name_scope == "requested_slots":
+            encoded_utterance = tf.concat([self._cat_encoded_utterance,
+                                           self._non_cat_encoded_utterance],
+                                          axis=1)
+            encoded_utterance = tf.reshape(encoded_utterance, (batch_size, -1))
         else:
             encoded_utterance = self._encoded_utterance
 
