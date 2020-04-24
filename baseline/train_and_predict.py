@@ -337,7 +337,7 @@ class SchemaGuidedDST(object):
         features["cat_utt_mask"] = tf.squeeze(tf.reshape(features["cat_utt_mask"],
                                                          (-1, self._max_seq_length)))
 
-        self._cat_encoded_utterance, self._cat_encoded_tokens = (
+        self._cat_encoded_utterance, _ = (
                     self._encode_utterances(features, is_training, "cat"))
 
         emb_dim = self._cat_encoded_utterance.shape[-1]
@@ -346,10 +346,10 @@ class SchemaGuidedDST(object):
                                                  (-1, data_utils.MAX_NUM_CAT_SLOT,
                                                   emb_dim))
 
-        self._cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
-                                              (-1, data_utils.MAX_NUM_CAT_SLOT,
-                                               self._max_seq_length,
-                                               emb_dim))
+        # self._cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
+        #                                       (-1, data_utils.MAX_NUM_CAT_SLOT,
+        #                                        self._max_seq_length,
+        #                                        emb_dim))
         tf.compat.v1.logging.info("State 4")
 
         # tf.compat.v1.logging.info("cat encoded utt: {}, {}".format(self._cat_encoded_utterance.shape,
@@ -362,17 +362,17 @@ class SchemaGuidedDST(object):
         features["non_cat_utt_mask"] = tf.squeeze(tf.reshape(features["non_cat_utt_mask"],
                                                   (-1, self._max_seq_length)))
 
-        self._non_cat_encoded_utterance, self._non_cat_encoded_tokens = (
+        self._non_cat_encoded_utterance, _ = (
             self._encode_utterances(features, is_training, "non_cat"))
 
         self._non_cat_encoded_utterance = tf.reshape(self._cat_encoded_utterance,
                                                  (-1, data_utils.MAX_NUM_CAT_SLOT,
                                                   emb_dim))
 
-        self._non_cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
-                                              (-1, data_utils.MAX_NUM_CAT_SLOT,
-                                               self._max_seq_length,
-                                               emb_dim))
+        # self._non_cat_encoded_tokens = tf.reshape(self._cat_encoded_tokens,
+        #                                       (-1, data_utils.MAX_NUM_CAT_SLOT,
+        #                                        self._max_seq_length,
+        #                                        emb_dim))
 
         # tf.compat.v1.logging.info("State 5")
 
