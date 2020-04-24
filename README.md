@@ -1,10 +1,8 @@
-# Baseline Model and Evaluation Script for DSTC8 Schema Guided Dialogue State Tracking
+# Schema Guided Dialogue State Prediction (CS-7650 Natural Lanugage Processing Project)
 
-**Contact -** schema-guided-dst@google.com
-
-**IMPORTANT** - Please report any issues with the code present in this
-directory at the github repository for the
-[dataset](https://github.com/google-research-datasets/dstc8-schema-guided-dialogue).
+This repository is based on the following repositories:
+1. Schema Guided DST (https://github.com/google-research/google-research/tree/master/schema_guided_dst)
+2. ALBERT (https://github.com/google-research/albert)
 
 ## Required packges
 1. absl-py (for tests)
@@ -21,109 +19,13 @@ The dataset can be downloaded from the github repository for
 challenge, which is a part of
 [DSTC8](https://github.com/google-research-datasets/dstc8-schema-guided-dialogue).
 
-## Baseline Model
-
-The baseline model is inspired from
-[BERT-DST (Chao and Lane)](https://arxiv.org/pdf/1907.03040.pdf). Here is a
-brief description of the model. Please refer to source code for more details.
-We will be publishing a formal description of the model in the future. **This
-model is provided "AS IS" without any warranty, express or implied. Google
-disclaims all liability for any damages, direct or indirect, resulting from its
-use.**
-
-The baseline model consists of two modules:
-
-1. **Schema Embedding Module** - A pre-trained BERT model to embed each schema
-   element (intents, slots and categorical slot values) using their natural
-   language description provided in the schema files in the dataset. These
-   embedded representations are pre-computed and are not fine-tuned during
-   optimization of model parameters in the state update module.
-
-2. **State Update Module** - A training example is generated for each service
-   frame in each user turn. We define the state update to be the difference
-   between the slot values present in the current service frame and the frame
-   for the same service present in the previous user utterance (if exists). This
-   module is trained to predict the active intent, requested slots and state
-   update using features from the current turn, the preceding system turn and
-   embedded representations of schema elements for the service corresponding to
-   the frame.
-
-   For each example, the user utterance and the preceding system utterance are
-   fed to a BERT model, which outputs the embedded representation and token
-   level representation of the utterance pair. The baseline model doesn't
-   predict all slot spans, so slot span related metrics are not reported. The
-   predictions are modelled as:
-
-   1. **Active intent** - The embedded representation of utterance pair is fused
-      with each intent embedding (plus an extra embedding for NONE intent) and
-      is projected to a scalar logit using a trainable projection. All intent
-      logits thus obtained are normalized using softmax to yield a distribution
-      over all intents for that service.
-
-   2. **Requested slots** - A similar procedure to active intent prediction is
-      followed to obtain a scalar logit for each slot by making use of the
-      corresponding slot embedding. Each logit is normalized using sigmoid
-      function to obtain the score for that slot. If a slot has a score > 0.5,
-      it is predicted to be requested by the user.
-
-   3. **Slot values** - Since the model only takes the last two utterances as
-      input, it is trained to predict the difference in the dialogue state
-      between the current user utterance and the preceding user utterance.
-      During inference, the predictions are accummulated to yield the predicted
-      dialogue state. The slot value updates are predicted in two stages. First,
-      for each slot, a distribution of size three denoting the slot status and
-      taking values NONE, DONTCARE and ACTIVE is obtained by a trainable
-      projection. If the status of a slot is predicted to be NONE, its assigned
-      value is assumed to be unchanged. If it is predicted to be DONTCARE, then
-      a dontcare value is assigned to that slot and if it is predicted to be
-      ACTIVE, then a slot value is predicted in the second stage and assigned to
-      it.
-
-      For categorical slots, prediction of slot value updates follows a similar
-      procedure to active intent prediction in order to obtain a scalar logit
-      for each possible value for each categorical slot. This is done by
-      fusing the embedded representation of the utterance pair and the embedded
-      representation of the corresponding slot value obtained in the Schema
-      Embedding module. All logits for a slot are normalized using softmax to
-      yield a distribution over all slot values of a categorical slot. The
-      value with the maximum probability value is assiged to the slot.
-
-      For non-categorical slots, the model is trained to identify the slot value
-      update as a span in the utterance pair. For predicting spans, token level
-      representations obtained from BERT are utilized. For each non-categorical
-      slot, each token level representation is fused with the corresponding slot
-      embedding obtained in the Schema Embedding module and is transformed into
-      a scalar logit using a trainable projection. The logits for all tokens
-      are normalized using softmax to obtain a distribution over all tokens.
-      This distribution is trained to predict the start token index of the span.
-      A similar procedure using a different set of weights is used to predict
-      the distribution for the end token index of the span. During inference,
-      the indices `i <= j` maximizing `start[i] + end[j]` is predicted to be the
-      span boundary and the corresponding value is assigned to the slot.
-
-### Results
-
-Following are the preliminary results obtained using the baseline model on the
-dev set of the respective datasets. We have not done much hyper-parameter tuning
-for obtaining these results and the model implementation hasn't been optimized.
-These numbers should be taken as indicative and may be updated in the future. In
-the table below, SGD refers to the Schema-Guided Dialogue dataset. SGD-Single
-model is trained and evaluated on single domain dialogues only whereas SGD-All
-model has been trained and evaluated on the entire dataset. We are also
-reporting results on [WOZ 2.0 dataset](https://arxiv.org/pdf/1606.03777.pdf) as
-a sanity check.
-
-| Metrics                | SGD-Single | SGD-All | WOZ 2.0 |
-|------------------------|:----------:|:-------:|:-------:|
-| Active Intent Accuracy | 0.966      | 0.885   | NA      |
-| Requested Slots F1     | 0.965      | 0.972   | 0.970   |
-| Average Goal Accuracy  | 0.776      | 0.694   | 0.915   |
-| Joint Goal Accuracy    | 0.486      | 0.383   | 0.814   |
-
 ### Required files
 
 1. `cased_L-12_H-768_A-12`: pretrained [BERT-Base, Cased] model checkpoint.
    Download link at [bert repository](https://github.com/google-research/bert).
+
+## Jupyter Notebook
+The codes for setup, training, prediction and evaluation is given in schema_guided_dst.ipynb. The notebook was tested on Google Colab. Run all the cells in the notebook (except save and load model if those features are not required). Scripts can also be used for these tasks and the process is described below.
 
 ### Training
 
@@ -197,3 +99,9 @@ python -m schema_guided_dst.evaluate \
 --prediction_dir <generated_model_predictions> --eval_set dev \
 --output_metric_file <path_to_json_for_report>
 ```
+
+## Relevant Branches
+master - Main working branch
+Albert_new - Changes for ALBERT encoder
+mrcAndWnd - Changes for Modified Utterance Encoding
+
